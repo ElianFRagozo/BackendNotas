@@ -42,7 +42,7 @@ namespace BackendNotas.Services
         public async Task DeleteNoteAsync(string id)
         {
             var objectId = ObjectId.Parse(id);
-            await _notes.DeleteOneAsync(note => note.id.Equals(objectId));
+            await _notes.DeleteOneAsync(note => note.id == objectId);
         }
 
 

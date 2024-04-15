@@ -33,11 +33,11 @@ namespace BackendNotas.Controllers
             return CreatedAtAction(nameof(GetNotes), new { _id = note.id }, note);
         }
 
-        [HttpDelete("{_id}")]
+        [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteNoteAsync(string id)
         {
             await _noteService.DeleteNoteAsync(id);
-            return NoContent();
+            return Ok();
         }
     }
 }
