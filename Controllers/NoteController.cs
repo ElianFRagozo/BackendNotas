@@ -30,10 +30,10 @@ namespace BackendNotas.Controllers
         {
             note.createdAt = DateTime.Now;
             await _noteService.CreateNoteAsync(note);
-            return CreatedAtAction(nameof(GetNotes), new { id = note.id }, note);
+            return CreatedAtAction(nameof(GetNotes), new { _id = note.id }, note);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{_id}")]
         public async Task<IActionResult> DeleteNoteAsync(string id)
         {
             await _noteService.DeleteNoteAsync(id);

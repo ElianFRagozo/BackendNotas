@@ -19,9 +19,19 @@ namespace BackendNotas.Services
             _notes = database.GetCollection<Note>("notes");
         }
 
+
+
         public async Task<List<Note>> GetNotesAsync()
         {
-            return await _notes.Find(note => true).ToListAsync();
+            var projection = Builders<Note>.Projection
+                .Include(n => n.id)
+                .Include(n => n.title)
+                .Include(n => n.content)
+                .Include(n => n.createdAt);
+
+            return await _notes.Find(note => true)
+                                .Project<Note>(projection)
+                                .ToListAsync();
         }
 
         public async Task CreateNoteAsync(Note note)
@@ -30,12 +40,14 @@ namespace BackendNotas.Services
         }
 
         public async Task DeleteNoteAsync(string id)
-    {
-        var objectId = ObjectId.Parse(id);
-        await _notes.DeleteOneAsync(note => note.id == objectId);
-    }
+        {
+            var objectId = ObjectId.Parse(id);
+            await _notes.DeleteOneAsync(note => note.id.Equals(objectId));
+        }
 
-}
+
+
+    }
 }
 
 namespace BackendNotas.Models
