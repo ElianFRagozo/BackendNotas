@@ -4,12 +4,12 @@ using BackendNotas.Models;
 using MongoDB.Driver;
 using MongoDB.Bson;
 
-
 namespace BackendNotas.Services
 {
     public class NoteService
     {
         private readonly IMongoCollection<Note> _notes;
+
 
         public NoteService(IMongoDatabaseSettings settings)
         {
@@ -39,14 +39,19 @@ namespace BackendNotas.Services
             await _notes.InsertOneAsync(note);
         }
 
+
         public async Task DeleteNoteAsync(string id)
         {
             var objectId = ObjectId.Parse(id);
-            await _notes.DeleteOneAsync(note => note.id == objectId);
+            await _notes.DeleteOneAsync(note => note.id == objectId.ToString());
         }
 
 
 
+        internal async Task DeleteNoteAsync(ObjectId objectId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 
