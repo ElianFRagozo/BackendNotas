@@ -1,59 +1,88 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using BackendNotas.Models;
+﻿using Microsoft.AspNetCore.Mvc;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using BackendNotas.Services;
-using Microsoft.AspNetCore.Mvc;
+using BackendNotas.Models;
+using System.Threading.Tasks;
+using System.IdentityModel.Tokens.Jwt;
 using MongoDB.Bson;
 
 namespace BackendNotas.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
-    public class NotesController : ControllerBase
+    [Route("api/[controller]")]
+    public class NoteController : ControllerBase
     {
         private readonly NoteService _noteService;
+        private readonly FirebaseAuth _firebaseAuth;
 
-        public NotesController(NoteService noteService)
+        public NoteController(NoteService noteService, FirebaseAuth firebaseAuth)
         {
             _noteService = noteService;
+            _firebaseAuth = firebaseAuth;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Note>>> GetNotes()
+        public async Task<ActionResult<List<Note>>> GetNotes([FromQuery] string idToken)
         {
-            var notes = await _noteService.GetNotesAsync();
-            return Ok(notes);
+            if (idToken == null)
+            {
+                return BadRequest("El parámetro idToken es obligatorio.");
+            }
+
+            // Verifica el nuevo token de Firebase del usuario
+            string uid = await _firebaseAuth.VerifyIdTokenAsync(idToken);
+
+            if (uid == null)
+            {
+                return Unauthorized("El token de Firebase es inválido.");
+            }
+
+            // Si el token es válido, obtiene las notas del usuario
+            return await _noteService.GetNotesAsync(uid);
         }
 
-[HttpPost]
-public async Task<ActionResult<Note>> CreateNoteAsync(Note note)
-{
-    // Generar un nuevo ObjectId válido
-    var newId = ObjectId.GenerateNewId().ToString();
 
-    // Asignar el nuevo ObjectId a la nota
-    note.id = newId;
 
-    // Establecer la fecha de creación
-    note.createdAt = DateTime.Now;
+        [HttpPost]
+        public async Task<ActionResult<Note>> CreateNoteAsync(Note note, string idToken)
+        {
+            var userId = await _firebaseAuth.VerifyIdTokenAsync(idToken);
 
-    // Llamar al servicio para crear la nota
-    await _noteService.CreateNoteAsync(note);
+            if (userId == null)
+            {
+                return Unauthorized("El token de Firebase es inválido.");
+            }
 
-    // Devolver la respuesta con el código 201 y la nota creada
-    return CreatedAtAction(nameof(GetNotes), new { _id = note.id }, note);
-}
+            note.userId = userId; // Asigna el userId a la nota
+            note.createdAt =DateTime.UtcNow;
+            await _noteService.CreateNoteAsync(note, userId); // Pasa el userId al método CreateNoteAsync
+            return CreatedAtAction(nameof(GetNotes), new { _id = note.id }, note);
+        }
+
 
 
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteNoteAsync(string id)
+        public async Task<IActionResult> DeleteNoteAsync(string id, [FromQuery] string idToken)
         {
-            await _noteService.DeleteNoteAsync(id);
+            if (idToken == null)
+            {
+                return BadRequest("El parámetro idToken es obligatorio.");
+            }
+
+            // Verifica el nuevo token de Firebase del usuario
+            string userId = await _firebaseAuth.VerifyIdTokenAsync(idToken);
+
+            if (userId == null)
+            {
+                return Unauthorized("El token de Firebase es inválido.");
+            }
+
+            // Elimina la nota con el ID proporcionado si pertenece al usuario autenticado
+            await _noteService.DeleteNoteAsync(id, userId);
             return NoContent();
         }
-
 
     }
 }
